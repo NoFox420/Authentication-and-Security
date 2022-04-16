@@ -2,6 +2,7 @@
  const ejs = require("ejs");
  const bodyParser = require("body-parser");
  const mongoose = require("mongoose");
+ const encrypt = require("mongoose-encryption");
 
  const app = express();
 
@@ -17,18 +18,23 @@
  });
 
  //creating a Schema for the user
- const userSchema = {
+ const userSchema = new mongoose.Schema({
    email: String,
    password: String
- };
+ });
+
+ //passing a single string for encryption instead of an encryption key and a signing key
+ const secret = "Thisisourlittlesecret.";
+
+ //adding the encrypt as a plugin to our schema and passing over the secret as an object
+ //encrypting only the password field
+ userSchema.plugin(encrypt, {
+   secret: secret,
+   encryptedFields: ["password"]
+ });
 
  //creating a new mongoose model based on the collection and schema in order to create users and adding them to the database
  const User = new mongoose.model("User", userSchema);
-
-
-
-
-
 
  //specifying a route for the chainable route handler
  app.route("/")
