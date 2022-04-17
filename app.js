@@ -5,7 +5,9 @@ const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 //const encrypt = require("mongoose-encryption");
-const md5 = require("md5");
+//const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 
@@ -52,8 +54,9 @@ app.route("/login")
   .post(function(req, res) {
     //checking the db for the credentials that were just inputed
     const username = req.body.username;
-    //comparing the inputed hash to the saved hash
-    const password = md5(req.body.password);
+    const password = req.body.password;
+
+
     User.findOne({
       //matching the saved email to the inputed username
       email: username
@@ -65,10 +68,11 @@ app.route("/login")
         //check if the user exists
         if (foundUser) {
           //check if the found users password matches the inputed password
-          if (foundUser.password === password) {
-            //only then render the secrets page
-            res.render("secrets");
-          }
+          bcrypt.compare(password, foundUser.password, function(err, result) {
+            if (result === true) {
+              res.render("secrets");
+            }
+          })
         }
       }
     })
@@ -79,23 +83,26 @@ app.route("/register")
     res.render("register")
   })
   .post(function(req, res) {
-    //creating a user with the inputs made
-    const newUser = new User({
-      email: req.body.username,
-      //applying the hash to the password field
-      password: md5(req.body.password)
-    });
-    //saving the created user to the database
-    newUser.save(function(err) {
-      if (err) {
-        //loggind possible errors
-        console.log(err)
-      } else {
-        //rendering the secrets page if everything worked
-        res.render("secrets")
-      }
-    });
-  })
+    //generate a salt and hash
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+
+      //creating a user with the inputs made
+      const newUser = new User({
+        email: req.body.username,
+        password: hash
+      });
+      //saving the created user to the database
+      newUser.save(function(err) {
+        if (err) {
+          //loggind possible errors
+          console.log(err)
+        } else {
+          //rendering the secrets page if everything worked
+          res.render("secrets")
+        }
+      });
+    })
+  });
 
 
 
