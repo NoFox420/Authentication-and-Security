@@ -4,7 +4,8 @@ const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const encrypt = require("mongoose-encryption");
+//const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 
 const app = express();
 
@@ -27,11 +28,11 @@ const userSchema = new mongoose.Schema({
 
 //adding the encrypt as a plugin to our schema and passing over the secret as an object
 //encrypting only the password field
-userSchema.plugin(encrypt, {
-  //accessing the secret variable inside .env
-  secret: process.env.SECRET,
-  encryptedFields: ["password"]
-});
+// userSchema.plugin(encrypt, {
+//   //accessing the secret variable inside .env
+//   secret: process.env.SECRET,
+//   encryptedFields: ["password"]
+// });
 
 //creating a new mongoose model based on the collection and schema in order to create users and adding them to the database
 const User = new mongoose.model("User", userSchema);
@@ -51,7 +52,8 @@ app.route("/login")
   .post(function(req, res) {
     //checking the db for the credentials that were just inputed
     const username = req.body.username;
-    const password = req.body.password;
+    //comparing the inputed hash to the saved hash
+    const password = md5(req.body.password);
     User.findOne({
       //matching the saved email to the inputed username
       email: username
@@ -80,7 +82,8 @@ app.route("/register")
     //creating a user with the inputs made
     const newUser = new User({
       email: req.body.username,
-      password: req.body.password
+      //applying the hash to the password field
+      password: md5(req.body.password)
     });
     //saving the created user to the database
     newUser.save(function(err) {
